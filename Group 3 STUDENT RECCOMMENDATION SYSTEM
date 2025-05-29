@@ -1,0 +1,331 @@
+#include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
+#include <limits>
+
+using namespace std;
+
+// APPLY GRAPH DATA STRUCTURE TO CONNECT MUTUAL FRIENDSHIPS
+unordered_map<string, vector<string>> friendGraph;
+string currentUser = "You";
+
+// PROFILE STRUCTURE
+struct UserProfile {
+    string name;
+    string studentNumber;
+    string academicYear;
+    string department;
+    string interest;
+};
+
+// LIST OF PEOPLE AND THEIR DATAS
+unordered_map<string, UserProfile> profileMap = {
+    {"You", {"Robert Williams", "20241107300", "FRESHMAN", "CPE", "Reading Books"}},
+    {"User_B", {"Mariane Eustaquio", "20241107313", "FRESHMAN", "CPE", "WATCHING K-DRAMAS"}},
+    {"User_C", {"Argelina Bautista", "20221105062", "FRESHMAN", "CPE", "Art"}},
+    {"User_D", {"Charm Delos Santos", "20241117680", "FRESHMAN", "CE", "Mobile Games"}},
+    {"User_F", {"Ranielle San Pedro", "20241117442", "FRESHMAN", "CE", "Mobile Games"}},
+    {"User_G", {"Vincent Dela Cruz", "2021221678", "SOPHOMORE", "CE", "Reading"}},
+    {"User_L", {"Markhuz Cruz", "2024300351", "FRESHMAN", "EE", "Gym"}},
+    {"User_O", {"Karl Angelo", "20221124523", "FRESHMAN", "CPE", "Music"}},
+    {"User_P", {"Allen Dwayne", "2021141071", "FRESHMAN", "CPE", "Grow a garden"}},
+    {"User_H", {"Ann Geronimo", "20221111166", "FRESHMAN", "CPE", "Watching Movies"}},
+    {"User_I", {"Ashley Astor", "20241124674", "FRESHMAN", "CPE", "Reading Books"}},
+    {"User_J", {"Jenilie Adame", "20241124674", "FRESHMAN", "CPE", "Music"}},
+    {"User_T", {"Karl Gabiano", "20241120229", "FRESHMAN", "CPE", "Games"}},
+    {"User_K", {"Nino Guevarra", "20241125542", "FRESHMAN", "CPE", "Gaming"}}
+};
+
+// VOID FUNCTION TO ADD FRIENDS
+void addFriendship(const string& user1, const string& user2) {
+    friendGraph[user1].push_back(user2); // USER1 ADDS USER2
+    friendGraph[user2].push_back(user1); // USER2 ADDS USER1
+}
+
+// DISPLAYS THE PROFILE OF ANY USER
+void displayProfile(const string& username, bool isFriend) {
+    if (profileMap.find(username) == profileMap.end()) {
+        cout << "\nProfile not found.\n";
+        return;
+    }
+
+    UserProfile& p = profileMap[username];
+
+    cout << "\n==========================================\n";
+    cout << "[WELCOME TO " << p.name << "'S PROFILE]\n";
+    cout << "==========================================\n";
+    cout << "NAME: " << p.name << "\n";
+    cout << "STUDENT NUMBER: " << p.studentNumber << "\n";
+    cout << "ACADEMIC YEAR: " << p.academicYear << "\n";
+    cout << "DEPARTMENT OF COURSE: " << p.department << "\n";
+    cout << "INTEREST: " << p.interest << "\n";
+    cout << "\n===========================================\n";
+
+    if (username == currentUser) {
+        cout << "GO BACK [E]\n";
+    } else if (isFriend) {
+        cout << "REMOVE FRIEND [Q]\t\tGO BACK [E]\n";
+    } else {
+        cout << "ADD FRIEND [Q]\t\tGO BACK [E]\n";
+    }
+
+    cout << "===========================================\n";
+}
+
+int main() {
+    // SET UP THE FRIENDSHIP GRAPH
+    addFriendship("You", "User_B");
+    addFriendship("You", "User_C");
+
+    addFriendship("User_B", "User_D");
+    addFriendship("User_B", "User_F");
+
+    addFriendship("User_D", "User_G");
+
+    addFriendship("User_F", "User_L");
+    addFriendship("User_F", "User_O");
+    addFriendship("User_F", "User_P");
+
+    addFriendship("User_C", "User_H");
+    addFriendship("User_C", "User_T");
+
+    addFriendship("User_H", "User_I");
+    addFriendship("User_H", "User_J");
+
+    addFriendship("User_T", "User_K");
+    addFriendship("User_T", "User_J");
+
+    char action1, subAction;
+    int selection;
+    
+    // Big "SRS" using square block characters
+    cout << "===================================\n";
+    cout << "===================================\n";
+    cout << "███████╗███╗   ███╗██████╗ ███████╗\n";
+    cout << "██╔════╝████╗ ████║██╔══██╗██╔════╝\n";
+    cout << "███████╗██╔████╔██║██████╔╝███████╗\n";
+    cout << "╚════██║██║╚██╔╝██║██╔══██╗╚════██║\n";
+    cout << "███████║██║ ╚═╝ ██║██║  ██║███████║\n";
+    cout << "╚══════╝╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝\n";
+    cout << "===================================\n";
+    cout << "===================================\n";
+
+    while (true) {
+        cout << "\n[ == HOMEPAGE == ]\n";
+        cout << "> PROFILE [A]\n> FRIENDS [B]\n> FIND FRIENDS [C]\n> SEARCH ALL USERS [D]\n> EXIT [X]\n";
+        cout << "\nACTION_INPUT => ";
+        cin >> action1;
+
+        // PROFILE [A]
+        if (action1 == 'A' || action1 == 'a') {
+            char profileBack;
+            displayProfile(currentUser, false);
+            cout << "Input => ";
+            cin >> profileBack;
+            if (profileBack == 'E' || profileBack == 'e') {
+                cout << "\n[FRIEND RECOMMENDATIONS BASED ON MUTUAL FRIENDS]\n";
+                continue;
+            } else {
+                cout << "Invalid input.\n";
+                continue;
+            }
+        }
+
+        // FRIENDS [B]
+        else if (action1 == 'B' || action1 == 'b') {
+            auto& friends = friendGraph[currentUser];
+        
+            // SELECTION SORT
+            for (size_t i = 0; i < friends.size(); ++i) {
+                size_t minIndex = i;
+                for (size_t j = i + 1; j < friends.size(); ++j) {
+                    if (profileMap[friends[j]].name < profileMap[friends[minIndex]].name) {
+                        minIndex = j;
+                    }
+                }
+                if (minIndex != i) {
+                    swap(friends[i], friends[minIndex]);
+                }
+            }
+        
+            cout << "\n[FRIENDS]\n";
+            if (friends.empty()) {
+                cout << "You have no friends yet.\n";
+            } else {
+                for (size_t i = 0; i < friends.size(); ++i)
+                    cout << "- " << profileMap[friends[i]].name << " (" << i + 1 << ")\n";
+                cout << "\nSelect a friend number to view profile or 0 to go back: ";
+                cin >> selection;
+                if (selection > 0 && selection <= friends.size()) {
+                    string selectedFriend = friends[selection - 1];
+                    displayProfile(selectedFriend, true);
+                    cout << "Input => ";
+                    cin >> subAction;
+                    if (subAction == 'Q' || subAction == 'q') {
+                        friends.erase(friends.begin() + (selection - 1));
+                        auto& otherList = friendGraph[selectedFriend];
+                        otherList.erase(remove(otherList.begin(), otherList.end(), currentUser), otherList.end());
+                        cout << profileMap[selectedFriend].name << " has been removed from your friend list.\n";
+                    } else if (subAction == 'E' || subAction == 'e') {
+                        cout << "Returning to main menu...\n";
+                    } else {
+                        cout << "Invalid input.\n";
+                    }
+                } else if (selection == 0) {
+                    cout << "Returning to main menu...\n";
+                } else {
+                    cout << "Invalid selection.\n";
+                }
+            }
+        }
+
+        // FIND FRIENDS [C]
+        else if (action1 == 'C' || action1 == 'c') {
+            cout << "\n[FRIEND RECOMMENDATIONS BASED ON MUTUAL FRIENDS]\n";
+            unordered_set<string> recommendations;
+        
+            auto it = friendGraph.find(currentUser);
+            if (it == friendGraph.end() || it->second.empty()) {
+                cout << "You need to have at least one friend to get recommendations.\n";
+                continue;
+            }
+        
+            auto& myFriends = it->second;
+        
+            // LINEAR SEARCHING ALGORITHM - FINDS FRIENDS THAT ARE/NOT YOUR FRIENDS. IF NOT, HE/SHE SHOULD BE IN THE RECOMMENDATION LIST.
+            for (size_t i = 0; i < myFriends.size(); ++i) {
+                string friendName = myFriends[i];
+        
+                auto friendIt = friendGraph.find(friendName);
+                if (friendIt == friendGraph.end()) continue;
+        
+                const vector<string>& friendsOfFriend = friendIt->second;
+        
+                for (size_t j = 0; j < friendsOfFriend.size(); ++j) {
+                    string mutual = friendsOfFriend[j];
+        
+                    // Skip if the mutual friend is the current user
+                    if (mutual == currentUser) continue;
+        
+                    // IF MUTUAL IS A FRIEND THEN:
+                    bool alreadyFriend = false;
+                    for (size_t k = 0; k < myFriends.size(); ++k) {
+                        if (myFriends[k] == mutual) {
+                            alreadyFriend = true;
+                            break;
+                        }
+                    }
+        
+                    // IF MUTUAL IS ALREADY RECOMMENDED
+                    bool alreadyRecommended = false;
+                    for (const string& r : recommendations) {
+                        if (r == mutual) {
+                            alreadyRecommended = true;
+                            break;
+                        }
+                    }
+        
+                    if (!alreadyFriend && !alreadyRecommended) {
+                        recommendations.insert(mutual);
+                    }
+                }
+            }
+        
+            if (recommendations.empty()) {
+                cout << "There are no recommendations.\n";
+            } else {
+                vector<string> recommendationList(recommendations.begin(), recommendations.end());
+        
+                // BUBBLE SORTING - TO SORT USERNAMES ALPHABETICALLY
+                for (size_t i = 0; i < recommendationList.size(); ++i) {
+                    for (size_t j = 0; j < recommendationList.size() - i - 1; ++j) {
+                        string name1 = profileMap[recommendationList[j]].name;
+                        string name2 = profileMap[recommendationList[j + 1]].name;
+                        if (name1 > name2) {
+                            swap(recommendationList[j], recommendationList[j + 1]);
+                        }
+                    }
+                }
+        
+                for (size_t i = 0; i < recommendationList.size(); ++i)
+                    cout << "- " << profileMap[recommendationList[i]].name << " (" << i + 1 << ")\n";
+        
+                cout << "\nSelect a number to view a user or 0 to return: ";
+                cin >> selection;
+                if (selection > 0 && selection <= recommendationList.size()) {
+                    string selectedUser = recommendationList[selection - 1];
+                    bool isFriend = false;
+                    for (size_t i = 0; i < myFriends.size(); ++i) {
+                        if (myFriends[i] == selectedUser) {
+                            isFriend = true;
+                            break;
+                        }
+                    }
+        
+                    displayProfile(selectedUser, isFriend);
+                    cout << "Input => ";
+                    cin >> subAction;
+                    if (subAction == 'Q' || subAction == 'q') {
+                        friendGraph[currentUser].push_back(selectedUser);
+                        friendGraph[selectedUser].push_back(currentUser);
+                        cout << profileMap[selectedUser].name << " has been added to your friend list!\n";
+        
+                        const_cast<vector<string>&>(myFriends) = friendGraph[currentUser];
+                    } else if (subAction == 'E' || subAction == 'e') {
+                        cout << "Returning to main menu...\n";
+                    } else {
+                        cout << "Invalid choice.\n";
+                    }
+                } else if (selection == 0) {
+                    cout << "Returning to main menu...\n";
+                } else {
+                    cout << "Invalid selection.\n";
+                }
+            }
+        }
+
+        // SEARCH ALL USERS [D]
+        else if (action1 == 'D' || action1 == 'd') {
+            vector<string> allUsers;
+            for (const auto& entry : profileMap)
+                if (entry.first != currentUser) allUsers.push_back(entry.first);
+
+            for (size_t i = 0; i < allUsers.size(); ++i) {
+                size_t minIndex = i;
+                for (size_t j = i + 1; j < allUsers.size(); ++j)
+                    if (profileMap[allUsers[j]].name < profileMap[allUsers[minIndex]].name)
+                        minIndex = j;
+                swap(allUsers[i], allUsers[minIndex]);
+            }
+
+            for (size_t i = 0; i < allUsers.size(); ++i)
+                cout << "- " << profileMap[allUsers[i]].name << " (" << i + 1 << ")\n";
+            cout << "\nSelect a number to view a user or 0 to return: ";
+            cin >> selection;
+            if (selection > 0 && selection <= allUsers.size()) {
+                string selectedUser = allUsers[selection - 1];
+                bool isFriend = find(friendGraph[currentUser].begin(), friendGraph[currentUser].end(), selectedUser) != friendGraph[currentUser].end();
+                displayProfile(selectedUser, isFriend);
+                cout << "Input => ";
+                cin >> subAction;
+                if (subAction == 'Q' || subAction == 'q') {
+                    addFriendship(currentUser, selectedUser);
+                    cout << profileMap[selectedUser].name << " has been added to your friend list!\n";
+                }
+            }
+        }
+
+        // EXIT [X]
+        else if (action1 == 'X' || action1 == 'x') {
+            cout << "Exiting program. Goodbye!\n";
+            break;
+        }
+
+        else {
+            cout << "Invalid input. Try again.\n";
+        }
+    }
+    return 0;
+}
