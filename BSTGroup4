@@ -1,0 +1,485 @@
+// Includes and Student struct remain the same
+#include <iostream>
+#include <string>
+#include <vector>
+#include <iomanip>
+#include <limits>
+#include <algorithm>
+#include<chrono> 
+#include<thread>
+#include <cstdlib>
+
+using namespace std;
+
+//loading screen
+void loading(){  const char spinner[] = {'|', '/', '-', '\\'};
+    int spinnerIndex = 0;
+
+    std::cout << "Loading ";
+
+    // Simulate loading for 5 seconds
+    for (int i = 0; i < 50; ++i) {
+        std::cout << "\b" << spinner[spinnerIndex];
+        std::cout.flush();
+
+        spinnerIndex = (spinnerIndex + 1) % 4;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    std::cout << "\b Done!" << std::endl;}
+//student is declared as node using struct
+struct Student {
+    long long id;
+    string firstName;
+    string lastName;
+    float gpa;
+    int age;
+    string sex;
+    string section;
+    Student* left;
+    Student* right;
+
+    Student(long long i, string fN, string lN, float g, int a, string s, string sec)
+        : id(i), firstName(fN), lastName(lN), gpa(g), age(a), sex(s), section(sec), left(nullptr), right(nullptr) {}
+};
+
+// Utility Functions
+void pauseForUser() {
+    cout << "\nPress Enter to return to menu...";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get(); system("clear");
+}
+
+Student* insert(Student* root, long long id, string firstName, string lastName, float gpa, int age, string sex, string section) {
+    if (!root) return new Student(id, firstName, lastName, gpa, age, sex, section);
+    if (id < root->id)
+        root->left = insert(root->left, id, firstName, lastName, gpa, age, sex, section);
+    else if (id > root->id)
+        root->right = insert(root->right, id, firstName, lastName, gpa, age, sex, section);
+    else
+        cout << "Record already exists!\n";
+    return root;
+}
+
+Student* search(Student* root, long long id) {
+    if (!root || root->id == id) return root;
+    if (id < root->id) return search(root->left, id);
+    return search(root->right, id);
+}
+
+void update(Student* root, long long id, string firstName, string lastName, float gpa, int age, string sex, string section) {
+    Student* student = search(root, id);
+    if (student) {
+        student->firstName = firstName;
+        student->lastName = lastName;
+        student->gpa = gpa;
+        student->age = age;
+        student->sex = sex;
+        student->section = section;
+        cout << "Record updated.\n";
+    } else {
+        cout << "Record not found.\n";
+    }
+}
+
+Student* findMin(Student* root) {
+    while (root && root->left) root = root->left;
+    return root;
+}
+
+Student* deleteRecord(Student* root, long long id) {
+    if (!root) return nullptr;
+    if (id < root->id)
+        root->left = deleteRecord(root->left, id);
+    else if (id > root->id)
+        root->right = deleteRecord(root->right, id);
+    else {
+        if (!root->left) {
+            Student* temp = root->right;
+            delete root;
+            return temp;
+        } else if (!root->right) {
+            Student* temp = root->left;
+            delete root;
+            return temp;
+        } else {
+            Student* temp = findMin(root->right);
+            root->id = temp->id;
+            root->firstName = temp->firstName;
+            root->lastName = temp->lastName;
+            root->gpa = temp->gpa;
+            root->age = temp->age;
+            root->sex = temp->sex;
+            root->section = temp->section;
+            root->right = deleteRecord(root->right, temp->id);
+        }
+    }
+    return root;
+}
+
+void collectStudents(Student* root, vector<Student*>& students) {
+    if (!root) return;
+    collectStudents(root->left, students);
+    students.push_back(root);
+    collectStudents(root->right, students);
+}
+// this is to create table
+void printTableHeader() {
+    cout << left
+         << setw(20) << "ID"
+         << setw(20) << "First Name"
+         << setw(20) << "Last Name"
+         << setw(10)  << "GPA"
+         << setw(10)  << "Age"
+         << setw(10)  << "Sex"
+         << setw(14) << "Section"
+         << '\n';
+    cout << setfill('-') << setw(75) << "-" << setfill(' ') << '\n';
+}
+
+void printStudentRow(Student* s) {
+    cout << left
+         << setw(20) << s->id
+         << setw(20) << s->firstName
+         << setw(20) << s->lastName
+         << fixed << setprecision(2)
+         << setw(6)  << s->gpa
+         << setw(6)  << s->age
+         << setw(6)  << s->sex
+         << setw(12) << s->section
+         << '\n';
+}
+
+template<typename Comparator>
+void bubbleSort(vector<Student*>& students, Comparator comp) {
+    int n = students.size();
+    for (int i = 0; i < n - 1; ++i)
+        for (int j = 0; j < n - i - 1; ++j)
+            if (comp(students[j + 1], students[j]))
+                swap(students[j], students[j + 1]);
+}
+
+void displayAll(Student* root) {
+    vector<Student*> students;
+    collectStudents(root, students);
+    if (students.empty()) {
+        cout << "No records to display.\n";
+    } else {
+        printTableHeader();
+        for (Student* s : students) printStudentRow(s);
+    }
+    pauseForUser();
+}
+
+void displaySorted(Student* root, const string& field) {
+    vector<Student*> students;
+    collectStudents(root, students);
+    if (students.empty()) {
+        cout << "No records to display.\n";
+        pauseForUser();
+        return;
+    }
+
+    cout << "Enter sort order (asc/desc): ";
+    string order;
+    cin >> order;
+    bool asc = (order == "asc");
+        //use bubble sort to organize students either descending or ascending
+    if (field == "gpa")
+        bubbleSort(students, [asc](Student* a, Student* b) { return asc ? (a->gpa < b->gpa) : (a->gpa > b->gpa); });
+    else if (field == "age")
+        bubbleSort(students, [asc](Student* a, Student* b) { return asc ? (a->age < b->age) : (a->age > b->age); });
+    else if (field == "sex")
+        bubbleSort(students, [asc](Student* a, Student* b) { return asc ? (a->sex < b->sex) : (a->sex > b->sex); });
+    else if (field == "firstName")
+        bubbleSort(students, [asc](Student* a, Student* b) { return asc ? (a->firstName < b->firstName) : (a->firstName > b->firstName); });
+    else if (field == "lastName")
+        bubbleSort(students, [asc](Student* a, Student* b) { return asc ? (a->lastName < b->lastName) : (a->lastName > b->lastName); });
+    else if (field == "section")
+        bubbleSort(students, [asc](Student* a, Student* b) { return asc ? (a->section < b->section) : (a->section > b->section); });
+
+    printTableHeader();
+    for (Student* s : students) printStudentRow(s);
+    pauseForUser();
+}
+
+void displayMenu(Student* root) { system("clear");
+    int choice;
+    cout << "\n--- Display Menu ---\n";
+    cout << "1. Display All (Sorted by ID)\n";
+    cout << "2. Sort by GPA\n";
+    cout << "3. Sort by Age\n";
+    cout << "4. Sort by Sex\n";
+    cout << "5. Sort by First Name\n";
+    cout << "6. Sort by Last Name\n";
+    cout << "7. Sort by Section\n";
+    cout << "Enter your choice: ";
+    cin >> choice;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    switch (choice) {
+        case 1: displayAll(root); break;
+        case 2: displaySorted(root, "gpa"); break;
+        case 3: displaySorted(root, "age"); break;
+        case 4: displaySorted(root, "sex"); break;
+        case 5: displaySorted(root, "firstName"); break;
+        case 6: displaySorted(root, "lastName"); break;
+        case 7: displaySorted(root, "section"); break;
+        default:
+            cout << "Invalid choice.\n";
+            pauseForUser();
+    }
+}
+
+void searchMenu(Student* root) { system("clear");
+    vector<Student*> students;
+    collectStudents(root, students);
+    if (students.empty()) {
+        cout << "No records available.\n";
+        pauseForUser();
+        return;
+    }
+
+    int choice;
+    cout << "\n--- Search Menu ---\n";
+    cout << "1. Search by ID\n";
+    cout << "2. Search by First Name\n";
+    cout << "3. Search by Last Name\n";
+    cout << "4. Search by GPA Range\n";
+    cout << "5. Search by Age Range\n";
+    cout << "6. Search by Sex\n";
+    cout << "7. Search by Section\n";
+    cout << "Enter your choice: ";
+    cin >> choice;
+    cin.ignore();
+
+    vector<Student*> results;
+    auto toLower = [](string s) {
+        transform(s.begin(), s.end(), s.begin(), ::tolower);
+        return s;
+    };
+
+    switch (choice) {
+        case 1: {
+            long long id;
+            cout << "Enter ID: ";
+            cin >> id;
+            Student* s = search(root, id);
+            if (s) results.push_back(s);
+            break;
+        }
+        case 2: {
+            string query;
+            cout << "Enter first name (partial): ";
+            getline(cin, query);
+            query = toLower(query);
+            for (auto* s : students)
+                if (toLower(s->firstName).find(query) != string::npos)
+                    results.push_back(s);
+            break;
+        }
+        case 3: {
+            string query;
+            cout << "Enter last name (partial): ";
+            getline(cin, query);
+            query = toLower(query);
+            for (auto* s : students)
+                if (toLower(s->lastName).find(query) != string::npos)
+                    results.push_back(s);
+            break;
+        }
+        case 4: {
+            float min, max;
+            cout << "Enter min GPA: ";
+            cin >> min;
+            cout << "Enter max GPA: ";
+            cin >> max;
+            for (auto* s : students)
+                if (s->gpa >= min && s->gpa <= max)
+                    results.push_back(s);
+            break;
+        }
+        case 5: {
+            int min, max;
+            cout << "Enter min age: ";
+            cin >> min;
+            cout << "Enter max age: ";
+            cin >> max;
+            for (auto* s : students)
+                if (s->age >= min && s->age <= max)
+                    results.push_back(s);
+            break;
+        }
+        case 6: {
+            string sex;
+            cout << "Enter sex (M/F): ";
+            getline(cin, sex);
+            sex = toLower(sex);
+            for (auto* s : students)
+                if (toLower(s->sex) == sex)
+                    results.push_back(s);
+            break;
+        }
+        case 7: {
+            string sec;
+            cout << "Enter section: ";
+            getline(cin, sec);
+            sec = toLower(sec);
+            for (auto* s : students)
+                if (toLower(s->section) == sec)
+                    results.push_back(s);
+            break;
+        }
+        default:
+            cout << "Invalid choice.\n";
+    }
+
+    if (results.empty()) {
+        cout << "No matching records found.\n";
+    } else {
+        printTableHeader();
+        for (auto* s : results) printStudentRow(s);//display the result
+    }
+
+    pauseForUser();// for going back to main menu
+}
+//delete nodee without content autonatically, this helps with space complexity
+void freeTree(Student* root) {
+    if (!root) return;
+    freeTree(root->left);
+    freeTree(root->right);
+    delete root;
+}
+
+// Main function
+int main() {
+
+    loading(); system("clear");
+
+    
+
+    Student* root = nullptr;
+//input data directly in the code
+root = insert(root, 20221112603LL, "Tyron", "Bernardo", 4.0f, 19, "M", "1CPE-2B");
+root = insert(root, 20241117362LL, "Roven", "Respicio", 3.0f, 19, "M", "1CPE-2A");
+root = insert(root, 20241141071LL, "Dwyane", "Dela Cruz", 2.0f, 19, "M", "1CPE-2B");
+root = insert(root, 20241120682LL, "Patrick", "Alde", 3.75f, 19, "M", "1CPE-2B");
+root = insert(root, 20241138896LL, "Kate", "Formon", 2.75f, 19, "F", "1CPE-2B");
+root = insert(root, 20221111815LL, "Ellaine", "Castro", 1.75f, 19, "F", "1CPE-2B");
+root = insert(root, 20241105099LL, "John", "Gungon", 1.5f, 19, "M", "1CPE-2B");
+root = insert(root, 20221105062LL, "Argelina", "Bautista", 2.5f, 19, "F", "1CPE-2A");
+root = insert(root, 20221115635LL, "Johnmeynard", "Oguez", 3.5f, 18, "M", "1CPE-2A");
+root = insert(root, 20241118149LL, "Althea", "Bautista", 2.25f, 19, "F", "1CPE-2A");
+root = insert(root, 20221118645LL, "Arabela", "Dela Cruz", 3.0f, 20, "F", "1CPE-2A");
+root = insert(root, 20221111166LL, "Ann", "Geronimo", 4.0f, 19, "F", "1CPE-2A");
+root = insert(root, 20221131846LL, "Steven", "Natividad", 3.0f, 19, "M", "1CPE-2A");
+root = insert(root, 20241110021LL, "Ron", "Boadilla", 3.25f, 18, "M", "1CPE-2A");
+root = insert(root, 20241107313LL, "Mariane", "Eustaquio", 1.75f, 19, "F", "1CPE-2A");
+root = insert(root, 20181114136LL, "Chang", "Park", 2.25f, 19, "M", "1CPE-2B");
+root = insert(root, 20241120810LL, "Jaylord", "Gaspi", 1.5f, 19, "M", "1CPE-2B");
+root = insert(root, 20221112090LL, "Luis", "Santiago", 3.25f, 18, "M", "1CPE-2B");
+root = insert(root, 20241120809LL, "Alexandria", "Timbol", 2.75f, 19, "F", "1CPE-2B");
+root = insert(root, 20241116336LL, "Rayne", "Roque", 1.0f, 19, "F", "1CPE-2B");
+root = insert(root, 20241100947LL, "Ian", "Untalan", 3.5f, 19, "M", "1CPE-2B");
+root = insert(root, 20221113297LL, "Raiden", "Munoz",  1.25f, 19, "M", "1CPE-2B");
+root = insert(root, 20121154856LL, "Moses", "Bartolome", 2.5f, 19, "M", "1CPE-2B");
+root = insert(root, 20241125382LL, "Andrew", "Salas", 3.75f, 19, "M", "1CPE-2B");
+root = insert(root, 20241123079LL, "Ashley", "Astor", 1.0f, 19, "F", "1CPE-2A");
+root = insert(root, 20241139140LL, "Rakim", "Joven", 3.0f, 19, "M", "1CPE-2A");
+root = insert(root, 20221110505LL, "Matthew", "Nunez", 4.0f, 19, "M", "1CPE-2A");
+root = insert(root, 20181122190LL, "Justine", "Cano", 1.5f, 19, "M", "1CPE-2A");
+root = insert(root, 20241112765LL, "Mark", "Alaba", 2.25f, 19, "M", "1CPE-2A");
+root = insert(root, 20241119517LL, "Edward", "Robillos", 1.0f, 18, "M", "1CPE-2A");
+root = insert(root, 20241125746LL, "Angela", "Tolentino", 3.25f, 19, "F", "1CPE-2B");
+root = insert(root, 20241124685LL, "Patrick", "Ayag", 2.75f, 18, "M", "1CPE-2A");
+root = insert(root, 20221125560LL, "Earl", "Munoz",  1.25f, 18, "M", "1CPE-2A");
+root = insert(root, 20241130596LL, "John", "Zambrano", 3.5f, 18, "M", "1CPE-2A");
+root = insert(root, 20241129475LL, "Jon", "Maula", 2.5f, 18, "M", "1CPE-2A");
+root = insert(root, 20241126669LL, "Jeremy", "Velasquez", 3.75f, 18, "M", "1CPE-2A");
+root = insert(root, 20241124674LL, "Jennilie", "Adame", 1.0f, 18, "F", "1CPE-2A");
+root = insert(root, 20221104923LL, "Hernan", "Nem", 3.0f, 19, "M", "1CPE-2A");
+root = insert(root, 20241110145LL, "Ben", "Espiritu", 4.0f, 19, "M", "1CPE-2A");
+root = insert(root, 20241110350LL, "Paul", "Gomez", 1.5f, 19, "M", "1CPE-2A");
+root = insert(root, 20171140844LL, "Jeanne", "Ng", 2.25f, 19, "F", "1CPE-2A");
+root = insert(root, 20221104592LL, "Christine", "Alcantara", 2.0f, 19, "F", "1CPE-2A");
+root = insert(root, 20241130767LL, "Neil", "Obsioma", 3.25f, 19, "M", "1CPE-2A");
+root = insert(root, 20221104036LL, "Denisse", "Abarro", 1.0f, 18, "M", "1CPE-2A");
+root = insert(root, 20241107380LL, "Aron", "Roxas", 1.25f, 18, "M", "1CPE-2A");
+root = insert(root, 20241130029LL, "Gwen", "Lopez", 3.5f, 20, "F", "1CPE-2B");
+root = insert(root, 20241120229LL, "Karl", "Gabiano", 2.5f, 18, "M", "1CPE-2A");
+root = insert(root, 20241120901LL, "John", "Garbin", 3.75f, 19, "M", "1CPE-2B");
+root = insert(root, 20241139093LL, "Chantelle", "Alejandrino", 2.5f, 18, "F", "1CPE-2B");
+root = insert(root, 20241100049LL, "Jhon", "Bamo", 3.0f, 19, "M", "1CPE-2B");
+root = insert(root, 20221124523LL, "Karl", "Basconcillo", 4.0f, 20, "M", "1CPE-2B");
+root = insert(root, 20241110918LL, "Ivan", "Dumolong", 1.25f, 19, "M", "1CPE-2B");
+
+//main menu
+    int choice;
+    do {
+        cout << "\n--- Academic Record of 1st Year CPE Students ---\n";
+        cout << "1. Insert Record\n";
+        cout << "2. Update Record\n";
+        cout << "3. Search Record (various attributes)\n";
+        cout << "4. Display Records (sorted options)\n";
+        cout << "5. Delete Record\n";
+        cout << "0. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+        cin.ignore();//disregard buffer
+
+        long long id;
+        string firstName, lastName, sex, section;
+        float gpa;
+        int age;
+//switch case lets program do specific task depdending on the user's choice
+        switch (choice) {
+            case 1: //insert
+                cout << "Enter ID: "; cin >> id; cin.ignore();
+                cout << "First Name: "; getline(cin, firstName);
+                cout << "Last Name: "; getline(cin, lastName);
+                cout << "GPA: "; cin >> gpa;
+                cout << "Age: "; cin >> age; cin.ignore();
+                cout << "Sex: "; getline(cin, sex);
+                cout << "Section: "; getline(cin, section);
+                root = insert(root, id, firstName, lastName, gpa, age, sex, section);
+                cout << "Record inserted.\n";
+                pauseForUser();
+                break;
+            case 2: //update
+                cout << "Enter ID to update: "; cin >> id; cin.ignore();
+                cout << "New First Name: "; getline(cin, firstName);
+                cout << "New Last Name: "; getline(cin, lastName);
+                cout << "New GPA: "; cin >> gpa;
+                cout << "New Age: "; cin >> age; cin.ignore();
+                cout << "New Sex: "; getline(cin, sex);
+                cout << "New Section: "; getline(cin, section);
+                update(root, id, firstName, lastName, gpa, age, sex, section);
+                pauseForUser();
+                break;
+            case 3: //search
+                searchMenu(root);
+                break;
+            case 4: //display
+                displayMenu(root);
+                break;
+            case 5: //delete
+                cout << "Enter ID to delete: ";
+                cin >> id;
+                root = deleteRecord(root, id);
+                cout << "Record deleted if it existed.\n";
+                pauseForUser();
+                break;
+            case 0: //exit
+                cout << "Exiting...\n";
+                break;
+            default:
+                cout << "Invalid choice.\n";
+                pauseForUser();
+        }
+
+    } while (choice != 0);
+//free tree lets the code delete the empty nodes
+    freeTree(root);
+    return 0;
+}
